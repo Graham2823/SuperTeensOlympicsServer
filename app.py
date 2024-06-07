@@ -217,10 +217,15 @@ def getEventsByDateAndCenter(date, center):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+import datetime
+
 @app.route('/createEvent', methods=['POST'])
 def createEvent():
     try:
         event_data = request.json
+
+        # Extract only the date part
+        event_date = event_data['eventDate'].split('T')[0]
 
         # Lookup community center IDs
         cursor.execute("""
@@ -241,7 +246,7 @@ def createEvent():
             VALUES (%s, %s, %s, %s, %s, %s)""",
             (
                 event_data['eventSport'], 
-                event_data['eventDate'], 
+                event_date,  # Use extracted date
                 event_data['eventTime'], 
                 event_data['eventLocation'], 
                 community_center_ids[0][0],  # First community center ID
@@ -254,6 +259,7 @@ def createEvent():
         return jsonify({'message': 'Event created successfully'}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 
 
