@@ -82,6 +82,7 @@ def getSchedule():
                 "eventSport": row[1],
                 "eventDate": row[2],
                 "eventTime": row[3],
+                "eventLocation": row[4],
                 "eventTeam1": row[8],
                 "eventTeam2": row[9],
                 "eventWinner": row[6]
@@ -121,6 +122,7 @@ def getEventsBySite(siteName):
                 "eventSport": row[1],
                 "eventDate": row[2],
                 "eventTime": row[3],
+                "eventLocation": row[4],
                 "eventTeam1": row[8],
                 "eventTeam2": row[9],
                 "eventWinner": row[6]
@@ -160,6 +162,7 @@ def getEventsByDate(date):
                 "eventSport": row[1],
                 "eventDate": row[2],
                 "eventTime": row[3],
+                "eventLocation": row[4],
                 "eventTeam1": row[8],
                 "eventTeam2": row[9],
                 "eventWinner": row[6]
@@ -203,6 +206,7 @@ def getEventsByDateAndCenter(date, center):
                 "eventSport": row[1],
                 "eventDate": row[2],
                 "eventTime": row[3],
+                "eventLocation": row[4],
                 "eventTeam1": row[8],
                 "eventTeam2": row[9],
                 "eventWinner": row[6]
@@ -212,6 +216,46 @@ def getEventsByDateAndCenter(date, center):
         return jsonify(events)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/createEvent', methods=['POST'])
+def createEvent():
+    try:
+        event_data = request.json
+
+        # Lookup community center IDs
+        cursor.execute("""
+            SELECT community_centerID FROM STOlympics.community_centers 
+            WHERE community_centerName = %s OR community_centerName = %s""",
+            (event_data['eventCommunityCenter1ID'], event_data['eventCommunityCenter2ID'])
+        )
+        community_center_ids = cursor.fetchall()
+        
+        # Check if both community centers exist
+        if len(community_center_ids) != 2:
+            return jsonify({'error': 'Invalid community center names provided'}), 400
+
+        # Insert event into database
+        cursor.execute("""
+            INSERT INTO STOlympics.scheduled_events 
+            (eventSport, eventDate, eventTime, eventLocation, communityCenter1ID, communityCenter2ID)
+            VALUES (%s, %s, %s, %s, %s, %s)""",
+            (
+                event_data['eventSport'], 
+                event_data['eventDate'], 
+                event_data['eventTime'], 
+                event_data['eventLocation'], 
+                community_center_ids[0][0],  # First community center ID
+                community_center_ids[1][0]   # Second community center ID
+            )
+        )
+
+        # Commit the transaction
+        conn.commit()
+        return jsonify({'message': 'Event created successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 
 
 
