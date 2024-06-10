@@ -26,7 +26,7 @@ db_config = {
 conn = mysql.connector.connect(**db_config)
 cursor = conn.cursor()
 
-#gets all events for an admin
+
 @app.route('/', methods=['GET'])
 def home():
     try:
