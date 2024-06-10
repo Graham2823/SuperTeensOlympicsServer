@@ -65,7 +65,7 @@ def getSchedule():
             ON sc.communityCenter1ID = cc.community_centerID 
             LEFT JOIN 
             STOlympics.community_centers cc2 
-            ON sc.communityCenter2ID = cc2.community_centerID;
+            ON sc.communityCenter2ID = cc2.community_centerID ORDER BY sc.eventDate, sc.eventTime;
 
         """
         cursor.execute(query)
@@ -260,11 +260,48 @@ def createEvent():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/signIn/<fireBaseUID>', methods=["GET"])
+def signIn(fireBaseUID):
+    try:
+        # Query the user table
+        query_user = """
+            SELECT * FROM
+            STOlympics.Admin a
+            WHERE a.AdminFireBaseID = %s
+        """
+        cursor.execute(query_user, (fireBaseUID,))
+        user_row = cursor.fetchone()
+        
+        # If user is found, return user data
+        if user_row:
+            user_data = {
+                'adminID': user_row[0],
+                'adminEmail': user_row[1],
+                'adminFirebaseID': user_row[2],
+            }
+            return jsonify({'data': user_data}), 200
+        
+        # If neither user nor admin is found, return "User not found" error
+        return jsonify({'error': 'User not found'}), 404
+        
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({'error': str(err)}), 500
 
-
-
-
-
+@app.route('/deleteEvent/<eventID>', methods=['DELETE'])
+def deleteEvent(eventID):
+    try:
+        cursor = conn.cursor()
+        sql = "DELETE FROM STOlympics.scheduled_events WHERE eventID = %s"
+        cursor.execute(sql, (eventID,))
+        conn.commit()
+        return jsonify({'message': 'Event deleted successfully'}), 200
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({'error': str(err)}), 500
+    finally:
+        cursor.close()
+    
 
    
 
