@@ -301,7 +301,35 @@ def deleteEvent(eventID):
         return jsonify({'error': str(err)}), 500
     finally:
         cursor.close()
-    
+
+
+@app.route('/updatePoints/<communityCenterName>/<points>', methods=['POST'])
+def update_points(communityCenterName, points):
+    if not communityCenterName or points is None:
+        return jsonify({'error': 'Missing communityCenterName or points'}), 400
+
+    try:
+        cursor = conn.cursor()
+        update_query = """
+        UPDATE STOlympics.community_centers
+        SET community_centerPoints = %s
+        WHERE community_centerName = %s
+        """
+        cursor.execute(update_query, (points, communityCenterName))
+        conn.commit()
+
+        return jsonify({'message': 'Points updated successfully'}), 200
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            return jsonify({'error': 'Something is wrong with your user name or password'}), 500
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            return jsonify({'error': 'Database does not exist'}), 500
+        else:
+            return jsonify({'error': str(err)}), 500
+    finally:
+        cursor.close()
+
+
 
    
 
