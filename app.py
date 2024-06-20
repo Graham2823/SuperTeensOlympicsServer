@@ -20,6 +20,8 @@ def get_db_connection():
 
 @app.route('/', methods=['GET'])
 def home():
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -44,11 +46,15 @@ def home():
     except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/getSchedule', methods=['GET'])
 def getSchedule():
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -86,11 +92,15 @@ def getSchedule():
     except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/eventsBySite/<siteName>', methods=['GET'])
 def getEventsBySite(siteName):
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -129,11 +139,15 @@ def getEventsBySite(siteName):
     except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/eventsByDate/<date>', methods=['GET'])
 def getEventsByDate(date):
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -172,11 +186,15 @@ def getEventsByDate(date):
     except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/eventsByDateAndCenter/<date>/<center>', methods=['GET'])
 def getEventsByDateAndCenter(date, center):
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -215,16 +233,20 @@ def getEventsByDateAndCenter(date, center):
     except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/createEvent', methods=['POST'])
 def createEvent():
+    conn = None
+    cursor = None
     try:
+        event_data = request.json
+
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        event_data = request.json
 
         event_date = event_data['eventDate'].split('T')[0]
 
@@ -255,40 +277,47 @@ def createEvent():
         conn.commit()
         return jsonify({'message': 'Event created successfully'}), 201
     except mysql.connector.Error as e:
+        if conn:
+            conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/signIn/<fireBaseUID>', methods=["GET"])
 def signIn(fireBaseUID):
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
         query_user = """
-            SELECT * FROM
-            STOlympics.Admin a
+            SELECT * FROM STOlympics.Admin a
             WHERE a.AdminFireBaseID = %s
         """
         cursor.execute(query_user, (fireBaseUID,))
         user_row = cursor.fetchone()
-        
+
         if user_row:
             user_data = {
                 'adminID': user_row[0],
                 'adminEmail': user_row[1],
-                'adminFirebaseID': user_row[2],
+                'adminFirebaseID': user_row[2]
             }
-            return jsonify({'data': user_data}), 200
-        
-        return jsonify({'error': 'User not found'}), 404
-        
-    except mysql.connector.Error as err:
-        return jsonify({'error': str(err)}), 500
+            return jsonify(user_data)
+        else:
+            return jsonify({'message': 'User not found'}), 404
+
+    except mysql.connector.Error as e:
+        return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/deleteEvent/<eventID>', methods=['DELETE'])
 def deleteEvent(eventID):
