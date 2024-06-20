@@ -8,7 +8,8 @@ CORS(app)
 
 # Define database configuration
 db_config = {
-    'host': os.environ.get('MYSQL_HOST'),
+    'host': os.environ.get('MYSQL_HOST', 'localhost'),  # Update with your MySQL host IP or hostname
+    'port': int(os.environ.get('MYSQL_PORT', 3306)),    # Update with your MySQL port
     'user': os.environ.get('MYSQL_USER'),
     'password': os.environ.get('MYSQL_PASSWORD'),
     'database': 'STOlympics'
