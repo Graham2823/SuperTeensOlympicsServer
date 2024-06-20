@@ -1,15 +1,7 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-import ssl
-import certifi
-from bson import json_util, ObjectId
-import json
 import mysql.connector
-from dotenv import load_dotenv
-from datetime import datetime
-import csv
-
 
 app = Flask(__name__)
 CORS(app)
@@ -22,41 +14,46 @@ db_config = {
     'database': 'STOlympics'
 }
 
-# Connect to MySQL database
-conn = mysql.connector.connect(**db_config)
-cursor = conn.cursor()
-
+# Helper function to get a new database connection
+def get_db_connection():
+    return mysql.connector.connect(**db_config)
 
 @app.route('/', methods=['GET'])
 def home():
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
         query = """
                 SELECT * FROM STOlympics.community_centers cc ORDER BY cc.community_centerPoints DESC
             """
         cursor.execute(query)
-            
-        # Fetch all rows for the query
-        rows = cursor.fetchall()
-        print(rows)
 
-        # Initialize a dictionary to store events where the eventID is the key
-        communityCenters = []
+        rows = cursor.fetchall()
+
+        community_centers = []
         for row in rows:
-            communityCenterData={
+            community_center_data = {
                 "communityCenterName": row[1],
                 "communityCenterPoints": row[2]
             }
-            communityCenters.append(communityCenterData)
+            community_centers.append(community_center_data)
 
-        return jsonify(communityCenters)
+        return jsonify(community_centers)
 
-    except Exception as e:
+    except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/getSchedule', methods=['GET'])
 def getSchedule():
     try:
-        query="""
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
            SELECT sc.*, cc.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
             FROM 
             STOlympics.scheduled_events sc 
@@ -66,15 +63,11 @@ def getSchedule():
             LEFT JOIN 
             STOlympics.community_centers cc2 
             ON sc.communityCenter2ID = cc2.community_centerID ORDER BY sc.eventDate, sc.eventTime;
-
         """
         cursor.execute(query)
-            
-        # Fetch all rows for the query
-        rows = cursor.fetchall()
-        print(rows)
 
-        # Initialize a dictionary to store events where the eventID is the key
+        rows = cursor.fetchall()
+
         events = []
         for row in rows:
             eventData={
@@ -90,12 +83,18 @@ def getSchedule():
             events.append(eventData)
 
         return jsonify(events)
-    except Exception as e:
+    except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/eventsBySite/<siteName>', methods=['GET'])
 def getEventsBySite(siteName):
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
         query = """
            SELECT sc.*, cc1.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
             FROM 
@@ -109,12 +108,9 @@ def getEventsBySite(siteName):
             WHERE cc1.community_centerName = %s OR cc2.community_centerName = %s
         """
         cursor.execute(query, (siteName, siteName))
-            
-        # Fetch all rows for the query
-        rows = cursor.fetchall()
-        print(rows)
 
-        # Initialize a dictionary to store events where the eventID is the key
+        rows = cursor.fetchall()
+
         events = []
         for row in rows:
             eventData={
@@ -130,12 +126,18 @@ def getEventsBySite(siteName):
             events.append(eventData)
 
         return jsonify(events)
-    except Exception as e:
+    except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/eventsByDate/<date>', methods=['GET'])
 def getEventsByDate(date):
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
         query = """
            SELECT sc.*, cc1.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
             FROM 
@@ -149,12 +151,9 @@ def getEventsByDate(date):
             WHERE sc.eventDate = %s
         """
         cursor.execute(query, (date,))
-            
-        # Fetch all rows for the query
-        rows = cursor.fetchall()
-        print(rows)
 
-        # Initialize a dictionary to store events where the eventID is the key
+        rows = cursor.fetchall()
+
         events = []
         for row in rows:
             eventData={
@@ -170,15 +169,18 @@ def getEventsByDate(date):
             events.append(eventData)
 
         return jsonify(events)
-    except Exception as e:
+    except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/eventsByDateAndCenter/<date>/<center>', methods=['GET'])
 def getEventsByDateAndCenter(date, center):
     try:
-        # Get date and community center name from the request body
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-        # Construct the SQL query
         query = """
            SELECT sc.*, cc1.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
             FROM 
@@ -191,14 +193,10 @@ def getEventsByDateAndCenter(date, center):
             ON sc.communityCenter2ID = cc2.community_centerID
             WHERE sc.eventDate = %s AND (cc1.community_centerName = %s OR cc2.community_centerName = %s)
         """
-        
-        # Execute the query with parameters
         cursor.execute(query, (date, center, center))
-            
-        # Fetch all rows for the query
+
         rows = cursor.fetchall()
-        print(rows)
-        # Initialize a list to store events
+
         events = []
         for row in rows:
             eventData={
@@ -214,56 +212,60 @@ def getEventsByDateAndCenter(date, center):
             events.append(eventData)
 
         return jsonify(events)
-    except Exception as e:
+    except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
-
-import datetime
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/createEvent', methods=['POST'])
 def createEvent():
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
         event_data = request.json
 
-        # Extract only the date part
         event_date = event_data['eventDate'].split('T')[0]
 
-        # Lookup community center IDs
         cursor.execute("""
             SELECT community_centerID FROM STOlympics.community_centers 
             WHERE community_centerName = %s OR community_centerName = %s""",
             (event_data['eventCommunityCenter1ID'], event_data['eventCommunityCenter2ID'])
         )
         community_center_ids = cursor.fetchall()
-        
-        # Check if both community centers exist
+
         if len(community_center_ids) != 2:
             return jsonify({'error': 'Invalid community center names provided'}), 400
 
-        # Insert event into database
         cursor.execute("""
             INSERT INTO STOlympics.scheduled_events 
             (eventSport, eventDate, eventTime, eventLocation, communityCenter1ID, communityCenter2ID)
             VALUES (%s, %s, %s, %s, %s, %s)""",
             (
                 event_data['eventSport'], 
-                event_date,  # Use extracted date
+                event_date,  
                 event_data['eventTime'], 
                 event_data['eventLocation'], 
-                community_center_ids[0][0],  # First community center ID
-                community_center_ids[1][0]   # Second community center ID
+                community_center_ids[0][0],  
+                community_center_ids[1][0]   
             )
         )
 
-        # Commit the transaction
         conn.commit()
         return jsonify({'message': 'Event created successfully'}), 201
-    except Exception as e:
+    except mysql.connector.Error as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/signIn/<fireBaseUID>', methods=["GET"])
 def signIn(fireBaseUID):
     try:
-        # Query the user table
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
         query_user = """
             SELECT * FROM
             STOlympics.Admin a
@@ -272,7 +274,6 @@ def signIn(fireBaseUID):
         cursor.execute(query_user, (fireBaseUID,))
         user_row = cursor.fetchone()
         
-        # If user is found, return user data
         if user_row:
             user_data = {
                 'adminID': user_row[0],
@@ -281,27 +282,29 @@ def signIn(fireBaseUID):
             }
             return jsonify({'data': user_data}), 200
         
-        # If neither user nor admin is found, return "User not found" error
         return jsonify({'error': 'User not found'}), 404
         
     except mysql.connector.Error as err:
-        conn.rollback()
         return jsonify({'error': str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/deleteEvent/<eventID>', methods=['DELETE'])
 def deleteEvent(eventID):
     try:
+        conn = get_db_connection()
         cursor = conn.cursor()
+
         sql = "DELETE FROM STOlympics.scheduled_events WHERE eventID = %s"
         cursor.execute(sql, (eventID,))
         conn.commit()
         return jsonify({'message': 'Event deleted successfully'}), 200
     except mysql.connector.Error as err:
-        conn.rollback()
         return jsonify({'error': str(err)}), 500
     finally:
         cursor.close()
-
+        conn.close()
 
 @app.route('/updatePoints/<communityCenterName>/<points>', methods=['POST'])
 def update_points(communityCenterName, points):
@@ -309,7 +312,9 @@ def update_points(communityCenterName, points):
         return jsonify({'error': 'Missing communityCenterName or points'}), 400
 
     try:
+        conn = get_db_connection()
         cursor = conn.cursor()
+
         update_query = """
         UPDATE STOlympics.community_centers
         SET community_centerPoints = %s
@@ -320,18 +325,10 @@ def update_points(communityCenterName, points):
 
         return jsonify({'message': 'Points updated successfully'}), 200
     except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            return jsonify({'error': 'Something is wrong with your user name or password'}), 500
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            return jsonify({'error': 'Database does not exist'}), 500
-        else:
-            return jsonify({'error': str(err)}), 500
+        return jsonify({'error': str(err)}), 500
     finally:
         cursor.close()
-
-
-
-   
+        conn.close()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)
