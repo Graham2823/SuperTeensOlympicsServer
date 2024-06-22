@@ -8,11 +8,11 @@ CORS(app)
 
 # Define database configuration
 db_config = {
-    'user': 'root',                    # MySQL username
-    'password': os.environ.get('MYSQL_PASSWORD'),                    # MySQL password
-    'host': '127.0.0.1',               # MySQL host IP or hostname
-    'port': 3306,                      # MySQL port
-    'database': 'STOlympics'           # MySQL database name
+    'user': 'admin',                       # MySQL username for AWS RDS
+    'password': os.environ.get('MYSQL_PASSWORD'),  # MySQL password
+    'host': 'stolympics.ctiwugy8azgr.us-east-2.rds.amazonaws.com',  # MySQL host for AWS RDS
+    'port': 3306,                          # MySQL port
+    'database': 'STOlympics'               # MySQL database name
 }
 
 # Helper function to get a new database connection
@@ -27,7 +27,9 @@ def home():
         cursor = conn.cursor()
 
         query = """
-                SELECT * FROM STOlympics.community_centers cc ORDER BY cc.community_centerPoints DESC
+                SELECT * 
+FROM STOlympics.community_centers cc 
+ORDER BY cc.community_centerPoints DESC, cc.community_centerName ASC;
             """
         cursor.execute(query)
 
