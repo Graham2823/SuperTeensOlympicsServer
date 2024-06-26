@@ -153,6 +153,7 @@ def getEventsByDate(date):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
 
         query = """
            SELECT sc.*, cc1.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
