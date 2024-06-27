@@ -1,7 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import os
 import mysql.connector
+import csv
+import io
 
 app = Flask(__name__)
 CORS(app)
@@ -153,7 +155,7 @@ def getEventsByDate(date):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
 
         query = """
            SELECT sc.*, cc1.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
@@ -361,6 +363,73 @@ def update_points(communityCenterName, points):
     finally:
         cursor.close()
         conn.close()
+@app.route('/downloadCSV/', methods=['GET'])
+def download_csv():
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+                SELECT * 
+                FROM STOlympics.community_centers cc 
+                ORDER BY cc.community_centerPoints DESC, cc.community_centerName ASC;
+            """
+        cursor.execute(query)
+
+        rows = cursor.fetchall()
+
+        # Prepare CSV data
+        csv_data = []
+
+        for row in rows:
+            community_center_data = {
+                "communityCenterName": row[1],
+                "communityCenterPoints": row[2]
+            }
+            csv_data.append(community_center_data)
+
+        # Create a string buffer to write CSV data
+        csv_buffer = io.StringIO()
+
+        # Get fieldnames from the first row of data
+        if csv_data:
+            fieldnames = csv_data[0].keys()
+        else:
+            fieldnames = []
+
+        # Create a CSV writer
+        writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames)
+
+        # Write header
+        writer.writeheader()
+
+        # Write participant information
+        writer.writerows(csv_data)
+
+        # Move the buffer cursor to the beginning
+        csv_buffer.seek(0)
+
+        # Create a Flask response with CSV content
+        response = Response(
+            csv_buffer.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': 'attachment; filename=community_centers.csv'}
+        )
+
+        return response
+
+    except mysql.connector.Error as err:
+        if conn:
+            conn.rollback()
+        return jsonify({'error': str(err)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)
