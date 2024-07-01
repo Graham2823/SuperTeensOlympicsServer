@@ -385,8 +385,8 @@ def download_csv():
 
         for row in rows:
             community_center_data = {
-                "communityCenterName": row[1],
-                "communityCenterPoints": row[2]
+                "Community Center Name": row[1],
+                "Community Center Points": row[2]
             }
             csv_data.append(community_center_data)
 
