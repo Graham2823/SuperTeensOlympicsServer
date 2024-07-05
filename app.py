@@ -196,6 +196,54 @@ def getEventsByDate(date):
         if conn:
             conn.close()
 
+@app.route('/eventsByEvent/<event>', methods=['GET'])
+def getEventsByEvent(event):
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+
+        query = """
+           SELECT sc.*, cc1.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
+            FROM 
+            STOlympics.scheduled_events sc 
+            LEFT JOIN 
+            STOlympics.community_centers cc1 
+            ON sc.communityCenter1ID = cc1.community_centerID 
+            LEFT JOIN 
+            STOlympics.community_centers cc2 
+            ON sc.communityCenter2ID = cc2.community_centerID
+            WHERE sc.eventSport = %s
+        """
+        cursor.execute(query, (event,))
+
+        rows = cursor.fetchall()
+
+        events = []
+        for row in rows:
+            eventData={
+                "eventID": row[0],
+                "eventSport": row[1],
+                "eventDate": row[2],
+                "eventTime": row[3],
+                "eventLocation": row[4],
+                "eventTeam1": row[8],
+                "eventTeam2": row[9],
+                "eventWinner": row[6]
+            }
+            events.append(eventData)
+
+        return jsonify(events)
+    except mysql.connector.Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 @app.route('/eventsByDateAndCenter/<date>/<center>', methods=['GET'])
 def getEventsByDateAndCenter(date, center):
     conn = None
