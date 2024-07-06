@@ -290,7 +290,6 @@ def getEventsByDateAndCenter(date, center):
             cursor.close()
         if conn:
             conn.close()
-
 @app.route('/createEvent', methods=['POST'])
 def createEvent():
     conn = None
@@ -303,15 +302,31 @@ def createEvent():
 
         event_date = event_data['eventDate'].split('T')[0]
 
+        community_centers = [event_data['eventCommunityCenter1ID']]
+        if 'eventCommunityCenter2ID' in event_data and event_data['eventCommunityCenter2ID']:
+            community_centers.append(event_data['eventCommunityCenter2ID'])
+
         cursor.execute("""
             SELECT community_centerID FROM STOlympics.community_centers 
-            WHERE community_centerName = %s OR community_centerName = %s""",
-            (event_data['eventCommunityCenter1ID'], event_data['eventCommunityCenter2ID'])
+            WHERE community_centerName = %s""",
+            (community_centers[0],)
         )
-        community_center_ids = cursor.fetchall()
+        community_center1_id = cursor.fetchone()
 
-        if len(community_center_ids) != 2:
-            return jsonify({'error': 'Invalid community center names provided'}), 400
+        if not community_center1_id:
+            return jsonify({'error': 'Invalid community center name provided for Community Center 1'}), 400
+
+        community_center2_id = None
+        if len(community_centers) > 1:
+            cursor.execute("""
+                SELECT community_centerID FROM STOlympics.community_centers 
+                WHERE community_centerName = %s""",
+                (community_centers[1],)
+            )
+            community_center2_id = cursor.fetchone()
+
+            if not community_center2_id:
+                return jsonify({'error': 'Invalid community center name provided for Community Center 2'}), 400
 
         cursor.execute("""
             INSERT INTO STOlympics.scheduled_events 
@@ -322,8 +337,8 @@ def createEvent():
                 event_date,  
                 event_data['eventTime'], 
                 event_data['eventLocation'], 
-                community_center_ids[0][0],  
-                community_center_ids[1][0]   
+                community_center1_id[0],  
+                community_center2_id[0] if community_center2_id else None
             )
         )
 
