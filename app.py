@@ -290,6 +290,148 @@ def getEventsByDateAndCenter(date, center):
             cursor.close()
         if conn:
             conn.close()
+
+@app.route('/eventsByDateAndEvent/<date>/<event>', methods=['GET'])
+def getEventsByDateAndEvent(date, event):
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+           SELECT sc.*, cc1.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
+            FROM 
+            STOlympics.scheduled_events sc 
+            LEFT JOIN 
+            STOlympics.community_centers cc1 
+            ON sc.communityCenter1ID = cc1.community_centerID 
+            LEFT JOIN 
+            STOlympics.community_centers cc2 
+            ON sc.communityCenter2ID = cc2.community_centerID
+            WHERE sc.eventDate = %s AND sc.eventSport = %s
+        """
+        cursor.execute(query, (date, event))
+
+        rows = cursor.fetchall()
+
+        events = []
+        for row in rows:
+            eventData={
+                "eventID": row[0],
+                "eventSport": row[1],
+                "eventDate": row[2],
+                "eventTime": row[3],
+                "eventLocation": row[4],
+                "eventTeam1": row[8],
+                "eventTeam2": row[9],
+                "eventWinner": row[6]
+            }
+            events.append(eventData)
+
+        return jsonify(events)
+    except mysql.connector.Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@app.route('/eventsByCenterAndEvent/<center>/<event>', methods=['GET'])
+def getEventsByCenterAndEvent(center, event):
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+           SELECT sc.*, cc1.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
+            FROM 
+            STOlympics.scheduled_events sc 
+            LEFT JOIN 
+            STOlympics.community_centers cc1 
+            ON sc.communityCenter1ID = cc1.community_centerID 
+            LEFT JOIN 
+            STOlympics.community_centers cc2 
+            ON sc.communityCenter2ID = cc2.community_centerID
+            WHERE (cc1.community_centerName = %s OR cc2.community_centerName = %s) AND sc.eventSport = %s
+        """
+        cursor.execute(query, (center, center, event))
+
+        rows = cursor.fetchall()
+
+        events = []
+        for row in rows:
+            eventData={
+                "eventID": row[0],
+                "eventSport": row[1],
+                "eventDate": row[2],
+                "eventTime": row[3],
+                "eventLocation": row[4],
+                "eventTeam1": row[8],
+                "eventTeam2": row[9],
+                "eventWinner": row[6]
+            }
+            events.append(eventData)
+
+        return jsonify(events)
+    except mysql.connector.Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+@app.route('/eventsByCenterAndEventAndDate/<center>/<event>/<date>', methods=['GET'])
+def getEventsByCenterAndEventAndDate(center, event, date):
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+           SELECT sc.*, cc1.community_centerName AS communityCenterName1, cc2.community_centerName AS communityCenterName2
+            FROM 
+            STOlympics.scheduled_events sc 
+            LEFT JOIN 
+            STOlympics.community_centers cc1 
+            ON sc.communityCenter1ID = cc1.community_centerID 
+            LEFT JOIN 
+            STOlympics.community_centers cc2 
+            ON sc.communityCenter2ID = cc2.community_centerID
+            WHERE (cc1.community_centerName = %s OR cc2.community_centerName = %s) AND sc.eventSport = %s AND sc.eventDate = %s
+        """
+        cursor.execute(query, (center, center, event, date))
+
+        rows = cursor.fetchall()
+
+        events = []
+        for row in rows:
+            eventData={
+                "eventID": row[0],
+                "eventSport": row[1],
+                "eventDate": row[2],
+                "eventTime": row[3],
+                "eventLocation": row[4],
+                "eventTeam1": row[8],
+                "eventTeam2": row[9],
+                "eventWinner": row[6]
+            }
+            events.append(eventData)
+
+        return jsonify(events)
+    except mysql.connector.Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 @app.route('/createEvent', methods=['POST'])
 def createEvent():
     conn = None
