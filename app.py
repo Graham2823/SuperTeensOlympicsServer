@@ -72,7 +72,7 @@ def getSchedule():
             ON sc.communityCenter1ID = cc.community_centerID 
             LEFT JOIN 
             STOlympics.community_centers cc2 
-            ON sc.communityCenter2ID = cc2.community_centerID ORDER BY sc.eventDate, sc.eventTime;
+            ON sc.communityCenter2ID = cc2.community_centerID ORDER BY sc.eventDate, STR_TO_DATE(sc.eventTime, '%h:%i%p');
         """
         cursor.execute(query)
 
@@ -119,7 +119,7 @@ def getEventsBySite(siteName):
             LEFT JOIN 
             STOlympics.community_centers cc2 
             ON sc.communityCenter2ID = cc2.community_centerID
-            WHERE cc1.community_centerName = %s OR cc2.community_centerName = %s
+            WHERE cc1.community_centerName = %s OR cc2.community_centerName = %s ORDER BY sc.eventDate, STR_TO_DATE(sc.eventTime, '%h:%i%p');
         """
         cursor.execute(query, (siteName, siteName))
 
@@ -167,7 +167,7 @@ def getEventsByDate(date):
             LEFT JOIN 
             STOlympics.community_centers cc2 
             ON sc.communityCenter2ID = cc2.community_centerID
-            WHERE sc.eventDate = %s
+            WHERE sc.eventDate = %s ORDER BY sc.eventDate, STR_TO_DATE(sc.eventTime, '%h:%i%p');
         """
         cursor.execute(query, (date,))
 
@@ -215,7 +215,7 @@ def getEventsByEvent(event):
             LEFT JOIN 
             STOlympics.community_centers cc2 
             ON sc.communityCenter2ID = cc2.community_centerID
-            WHERE sc.eventSport = %s
+            WHERE sc.eventSport = %s ORDER BY sc.eventDate, STR_TO_DATE(sc.eventTime, '%h:%i%p');
         """
         cursor.execute(query, (event,))
 
@@ -262,7 +262,7 @@ def getEventsByDateAndCenter(date, center):
             LEFT JOIN 
             STOlympics.community_centers cc2 
             ON sc.communityCenter2ID = cc2.community_centerID
-            WHERE sc.eventDate = %s AND (cc1.community_centerName = %s OR cc2.community_centerName = %s)
+            WHERE sc.eventDate = %s AND (cc1.community_centerName = %s OR cc2.community_centerName = %s) ORDER BY sc.eventDate, STR_TO_DATE(sc.eventTime, '%h:%i%p');
         """
         cursor.execute(query, (date, center, center))
 
@@ -309,7 +309,7 @@ def getEventsByDateAndEvent(date, event):
             LEFT JOIN 
             STOlympics.community_centers cc2 
             ON sc.communityCenter2ID = cc2.community_centerID
-            WHERE sc.eventDate = %s AND sc.eventSport = %s
+            WHERE sc.eventDate = %s AND sc.eventSport = %s ORDER BY sc.eventDate, STR_TO_DATE(sc.eventTime, '%h:%i%p');
         """
         cursor.execute(query, (date, event))
 
@@ -356,7 +356,7 @@ def getEventsByCenterAndEvent(center, event):
             LEFT JOIN 
             STOlympics.community_centers cc2 
             ON sc.communityCenter2ID = cc2.community_centerID
-            WHERE (cc1.community_centerName = %s OR cc2.community_centerName = %s) AND sc.eventSport = %s
+            WHERE (cc1.community_centerName = %s OR cc2.community_centerName = %s) AND sc.eventSport = %s ORDER BY sc.eventDate, STR_TO_DATE(sc.eventTime, '%h:%i%p');
         """
         cursor.execute(query, (center, center, event))
 
@@ -403,7 +403,7 @@ def getEventsByCenterAndEventAndDate(center, event, date):
             LEFT JOIN 
             STOlympics.community_centers cc2 
             ON sc.communityCenter2ID = cc2.community_centerID
-            WHERE (cc1.community_centerName = %s OR cc2.community_centerName = %s) AND sc.eventSport = %s AND sc.eventDate = %s
+            WHERE (cc1.community_centerName = %s OR cc2.community_centerName = %s) AND sc.eventSport = %s AND sc.eventDate = %s ORDER BY sc.eventDate, STR_TO_DATE(sc.eventTime, '%h:%i%p');
         """
         cursor.execute(query, (center, center, event, date))
 
